@@ -99,6 +99,8 @@ h1 ~ aside {
 
 body > p, li > p {
   line-height: 1.5em;
+      font-family: "PT Sans", sans-serif;
+
 }
 
 body > p {
@@ -211,11 +213,48 @@ blockquote q:after {
 
 /* start of additional CSS for our languages.html vis */
 
+#selectList, #selectList_chosen {
+    margin-left: -180px;
+    margin-top: 40px;
+    margin-bottom: -80px;
+    position: absolute;
+    font-family: "PT Sans", sans-serif;
+
+}
+
 #description {
   width: 100%;
   position: relative;
   margin-top: 40px;
-  font-family: "PT Serif", serif;
+/*  font-family: "PT Serif", serif;
+*/
+  font-family: "PT Sans", sans-serif;
+}
+
+#map_hint{
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  font-family: "PT Sans", sans-serif;
+}
+
+.smoothScroll {
+  text-decoration: none;
+  color: #AAAAAA;
+}
+
+a#map_hint.smoothScroll:hover {
+  color: rgba(122, 122, 122, 1);
+}
+
+
+#names {
+  font-size: small;
+  float: right;
+  margin-top: -8px;
+  margin-right: -8px;
+  font-family: "PT Sans", sans-serif;
+
 }
 
 #radiusKey {
@@ -254,15 +293,18 @@ blockquote q:after {
   width: 580px;
   float: left;
   font-size: 12px;
+  font-family: "PT Sans", sans-serif;
 }
 
 #instructions {
-  font-family: "PT Serif", serif;
+/*  font-family: "PT Serif", serif;
+*/  
+  font-family: "PT Sans", sans-serif;
   display: block;
   float: left;
   margin-left: 30px;
   font-size: 12px;
-  width: 300px;
+  width: 345px;
 }
 
 #container, #map {
@@ -279,6 +321,10 @@ text {
 
 #subtitle {
   margin-top: -10px;
+  width: 440px;
+  float: left;
+  padding: 0px;
+  margin-bottom: 0px;
 }
 
 .dot {
@@ -319,5 +365,6 @@ text {
   stroke: black;
   opacity: 0.3;
 }
+
 .datamaps-hoverover {display: none; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; } 
 .hoverinfo {padding: 4px; border-radius: 1px; background-color: #FFF; box-shadow: 1px 1px 5px #CCC; font-size: 12px; border: 1px solid #CCC;

@@ -6,16 +6,19 @@
 
 <head>
   <link rel="stylesheet" type="text/css" href="css/style.css">
+  <link rel="stylesheet" type="text/css" href="chosen_v1.6.2/chosen.min.css">
 </head>
-
-<header>
-  <aside>December 6, 2016</aside>
-  <a href="../" rel="author">Hannah Freedman, Owen Elliott & Sibonay Koo</a>
-</header>
 
 <body>
 <h1>Information Accessibility by Language</h1>
 <h3 id="subtitle">How has Wikipedia in each language grown over time?</h3>
+<div id="names">
+<a rel="author">Hannah Freedman, Owen Elliott & Sibonay Koo </a> &nbsp;|&nbsp; December 6, 2016 
+</div>
+
+<select multiple data-placeholder="Select language" id="selectList" class="chzn-select" style="width:125px;" tabindex="2">
+      <option value=""></option> 
+</select>
 
 <div id="display_box"></div>
 
@@ -31,14 +34,16 @@
   </div>
 </div>
 
-<div id="instructions">Mouseover the bottom of the year to move forward and backwards through time. Click on a map region to highlight the corresponding languages on the graph or vice versa. Change the graph scale to better understand the distribution.</div>
+<div id="instructions">Mouseover the bottom of the year to move forward and backwards through time. Click on a map region to highlight the corresponding languages on the graph or vice versa. Use the search bar to look for specific languages. Change the graph scale to better understand the distribution.</div>
 
+<a href="#map-link" id="map_hint" class="smoothScroll"> &nbsp;&#8595;&nbsp; Scroll down for map &nbsp;</a>
+<a name="map-link"></a> 
 <div id="container">
   <div id="map"> </div>
 </div>
 
 <div id="description"
-<p>The languages you speak vastly affect which and how much information you have access to. Wikipedia is seen as the encyclopedia of the 21st century, but the quantity of information available differs for each language. This visualization of the more than 200 languages with Wikipedias shows their dynamic fluctuation in speakers (radius), Wikipedia articles (<i>x</i>), and Wikipedia users (<i>y</i>) over the past 9 years. Languages are colored by geographic region; languages such as English or Spanish, which are spoken in multiple regions, are colored by where they originated. Click on a language to see more information!
+<p>The languages you speak vastly affect which and how much information you have access to. Wikipedia is seen as the encyclopedia of the 21st century, but the quantity of information available differs for each language. This visualization of the more than 200 languages with Wikipedias shows their dynamic fluctuation in speakers (<i>radius</i>), Wikipedia articles (<i>x</i>), and Wikipedia users (<i>y</i>) over the past 9 years. Languages are colored by geographic region; languages such as English or Spanish, which are spoken in multiple regions, are colored by where they originated. Click on a language to see more information!
 
 <p>The data for this visualization was collected from <a href="https://meta.wikimedia.org/wiki/List_of_Wikipedias/Table">Wikipedia metadata</a> and research. 
 
@@ -54,9 +59,21 @@
 <script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.3/d3.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/topojson/1.6.9/topojson.min.js"></script>
-<script src="/Visualizing-Wikipedia-Languages/datamaps/datamaps.world.min.js"></script>
+<script src="datamaps/datamaps.world.min.js"></script>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script type="text/javascript" src="js/smoothscroll.js"></script>
+<script type="text/javascript" src="chosen_v1.6.2/chosen.jquery.js"></script>
 
 <script>
+
+// current settings
+currSettings = { 
+  highlighted: false,
+  region : "none",
+  language: "none",
+  selected: [],  // search box for languages
+  scale: "log-full"
+};
 
 // Various accessors that specify the four dimensions of data to visualize.
 function x(d) { return d.articles; }
@@ -66,7 +83,6 @@ function color(d) { return d.region; }
 function key(d) { return d.language; }
 
 // whether the chart is set to a linear or logarithmic scale
-var scale = "log-full";
 function changeScale(value) {
   d3.select("#display_box").style("display", "none");
   // redraw chart and map
@@ -74,16 +90,51 @@ function changeScale(value) {
   document.getElementById("map").remove();
   document.getElementById("container").innerHTML += '<div id="map">';
   setUpChart(value);
+  currSettings.scale = value;
 }
 
-// what is currently is currently highlighted
-currentlyHighlighted = { 
-  highlighted: false,
-  region : "none",
-  language: "none"
-};
+$.getJSON("lang_data.json", function(json) {
+    var x = document.getElementById("selectList");
 
-setUpChart("log-full");
+    for (var i = 0; i < json.length; i++) {
+      var language = json[i]['language'];
+      var region = json[i]['region'];
+      var option = document.createElement("option");
+      //option.value = {language : region};
+      option.value = language;
+      option.text = language;
+      option.title = region;
+      x.add(option);
+    }
+
+$(".chzn-select").chosen().change(function(evt, params) {
+      if (params.selected != undefined)
+      {
+        var language = params.selected;
+        var region = $('#selectList > option[value="' + language + '"]').attr('title');
+
+        currSettings.selected.push({language, region});
+      }
+      if (params.deselected != undefined)
+      {
+        var language = $('option:selected', this).text();
+
+          for(var i = currSettings.selected.length - 1; i >= 0; i--) {
+              if((currSettings.selected[i]).language === params.deselected) {
+                 currSettings.selected.splice(i, 1);
+              }
+          }
+      }
+      d3.select("svg").remove();
+      document.getElementById("map").remove();
+      d3.select("#display_box").style("display", "none");
+      document.getElementById("container").innerHTML += '<div id="map">';
+      setUpChart(currSettings.scale);
+      //updateDisplay();
+  });
+});
+
+setUpChart(currSettings.scale);
 
 function setUpChart(scale) {
   // Chart dimensions.
@@ -188,8 +239,12 @@ function makeChart (scale) {
             region = localData.Region;
             updateMap(region, localData.Country, false, false);
             updateDotsByRegion(region, dot, 1);
+
+            // clear select list
+            $('#selectList').val('').trigger('chosen:updated');
+            currSettings.selected = [];
           }
-          currentlyHighlighted.language = "none";
+          currSettings.language = "none";
           d3.select("#display_box").style("display", "none");
         })
       },
@@ -251,7 +306,6 @@ function makeChart (scale) {
       .selectAll(".dot")
         .data(interpolateData(2007))
       .enter().append("circle")
-        //.attr("class", "dot start_selection")
         .attr("class", "start_selection")
         .attr("region", function(d) {
           var region = color(d);
@@ -282,63 +336,101 @@ function makeChart (scale) {
         .text(function(d) { 
           var text = d.language;
           return text });
- 
-    function numberWithCommas(x) {
-        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+    // Show specific language
+    var array = currSettings.selected;
+    if (typeof array != "undefined" && array != null && array.length > 0) {
+      updateDotsByLanguages(1);
     }
 
-      function display_data(d, i){
-        year = curryear - 2007;
+    var where = "";
+    var country = "";
+    updateMap(where, country, false, false);
+ 
+    function numberWithCommas(x) {
+      return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
 
-        document.getElementById("display_box").innerHTML = "<b>" + nations[i].language + "</b>" + "<br>Speakers: " + numberWithCommas(nations[i].speakers[year][1]) + "<br>Articles: " + numberWithCommas(nations[i].articles[year][1]) + "<br>Users: " + numberWithCommas(nations[i].users[year][1]) + "<br>Region: " + nations[i].region;
+    function displayData(d, i){
+      var  year = curryear - 2007;
+
+      document.getElementById("display_box").innerHTML = "<b>" + nations[i].language + "</b>" + "<br>Speakers: " + numberWithCommas(nations[i].speakers[year][1]) + "<br>Articles: " + numberWithCommas(nations[i].articles[year][1]) + "<br>Users: " + numberWithCommas(nations[i].users[year][1]) + "<br>Region: " + nations[i].region;
       d3.select("#display_box").style("display", "block");
     }
 
-      function update_display(){
-          year = curryear - 2007;
-          for (i = 0; i < nations.length; i++){
-              if(nations[i].language == currentlyHighlighted.language){
-                  document.getElementById("display_box").innerHTML = "<b>" + nations[i].language + "</b>"  + "<br>Speakers: " + numberWithCommas(nations[i].speakers[year][1]) + "<br>Articles: " + numberWithCommas(nations[i].articles[year][1]) + "<br>Users: " + numberWithCommas(nations[i].users[year][1]) + "<br>Region: " + nations[i].region;
-              }
-          }
-      }
+    function updateDisplay(){
+        var year = curryear - 2007;
+        for (i = 0; i < nations.length; i++) {
+            var language = currSettings.language;
+
+            if (nations[i].language == language || currSettings.selected.indexOf(language) >= 0) {
+                document.getElementById("display_box").innerHTML = "<b>" + nations[i].language + "</b>"  + "<br>Speakers: " + numberWithCommas(nations[i].speakers[year][1]) + "<br>Articles: " + numberWithCommas(nations[i].articles[year][1]) + "<br>Users: " + numberWithCommas(nations[i].users[year][1]) + "<br>Region: " + nations[i].region;
+            }
+        }
+    }
       
     // Change opacity of dots and map based on which one you clicked
     function clicked(d, i) {
-      display_data(d, i);    
-        
-      dot.style("stroke-width", 1)
-      var select = d3.select(this).attr("class");
-      var sameRegion = (d.region == currentlyHighlighted.region);
-      var sameLanguage = (currentlyHighlighted.language == d.language);
 
-      if ((select == "unselected") || (select == "start_selection")) {
-        currentlyHighlighted.highlighted = false;
-        currentlyHighlighted.language = d.language;
-        updateMap(d.region, country, sameRegion, sameLanguage);
-        dot.style("opacity", 0.15);
-        dot.attr("class", "unselected");
-        updateDotsByRegion(d.region, dot, 0.7);
+      var inSelectList = false;
+      var length = currSettings.selected.length;
+
+      for (var j = 0; j < length; j++) {
+        if ((currSettings.selected[j]).language == d.language) {
+          inSelectList = true;
+          break;
+        }
+      }
+
+      displayData(d, i); 
+      dot.style("stroke-width", 1);
+   
+      if (typeof currSettings.selected !== 'undefined' && length > 0 && inSelectList) {
+        currSettings.language = d.language;
 
         d3.select(this)
           .style("opacity", 1)
           .style("stroke-width", 2)
           .attr("class", "selected");
-      } else {
-          currentlyHighlighted.highlighted = true;
+      }
+
+      else {
+          // clear select list
+          $('#selectList').val('').trigger('chosen:updated');
+          currSettings.selected = [];
+
+          var select = d3.select(this).attr("class");
+          var sameRegion = (d.region == currSettings.region);
+          var sameLanguage = (currSettings.language == d.language);
+
+        if ((select == "unselected") || (select == "start_selection")) {
+          currSettings.highlighted = false;
+          currSettings.language = d.language;
           updateMap(d.region, country, sameRegion, sameLanguage);
-          currentlyHighlighted.language = "none";
-          d3.select("#display_box").style("display", "none");
-          dot.style("opacity", 1);
-          d3.select(this).attr("class", "unselected");
-        } 
+          dot.style("opacity", 0.15);
+          dot.attr("class", "unselected");
+          updateDotsByRegion(d.region, dot, 0.7);
+
+          d3.select(this)
+            .style("opacity", 1)
+            .style("stroke-width", 2)
+            .attr("class", "selected");
+        } else {
+            currSettings.highlighted = true;
+            updateMap(d.region, country, sameRegion, sameLanguage);
+            currSettings.language = "none";
+            d3.select("#display_box").style("display", "none");
+            dot.style("opacity", 1);
+            d3.select(this).attr("class", "unselected");
+          } 
+      }
     }
 
     // Link map with dots
     function updateDotsByRegion(region, dot, selectedOpacity) {
       if (region != "none") {
         dot.style("opacity", function(d) {
-          var location = color(d);
+          var location = d.region;
           if (location != region) {
             return 0.15;
           } else {
@@ -348,6 +440,28 @@ function makeChart (scale) {
       } else {
         dot.style("opacity", 1);
       }
+    }
+
+    // Link map with dots
+    function updateDotsByLanguages(selectedOpacity) {
+      if (typeof currSettings.selected !== 'undefined' && currSettings.selected.length > 0) {
+        dot.style("opacity", function(d) {
+          var language = d.language;
+          var length = currSettings.selected.length;
+          var opacity = 0.15;
+
+          for (var i = 0; i < length; i++) {
+            if ((currSettings.selected[i]).language == language) {
+              opacity = selectedOpacity;
+            }
+          }
+          return opacity;
+          })
+        } else {
+          dot.style("opacity", 1);
+        }
+        currSettings.region = "multiple";
+        updateMap("none", "none", false, false);
     }
 
     // Add an overlay for the year label.
@@ -419,7 +533,7 @@ function makeChart (scale) {
     // Updates the display to show the specified year.
     function displayYear(year) {
       curryear = Math.floor(year);
-      update_display();
+      updateDisplay();
       dot.data(interpolateData(year), key).call(position).sort(order);
       label.text(Math.round(year));
     }
@@ -451,13 +565,31 @@ function makeChart (scale) {
       return a[1];
     }
 
-   function updateMap (region, country, sameRegion, sameLanguage) {
+    function updateMap (region, country, sameRegion, sameLanguage) {
         var countryFill = getFillKey(region);
 
         d3.csv("regions.csv", function(error, data) {
+
+        // highlight multiple regions
+        if (typeof currSettings.selected !== 'undefined' && currSettings.selected.length > 0) {
+          for (var i = 0; i < data.length; i++) { 
+            data[i].fillKey = getLightFillKey(data[i].Region);
+
+            for (var j = 0; j < currSettings.selected.length; j++) { 
+                if (data[i].Region == 
+                  (currSettings.selected[j]).region) {
+                  data[i].fillKey = getFillKey(currSettings.selected[j].region);
+                } 
+              }
+            data[ data[i].ISO] = data[i] ;
+            delete  data[i].ISO;
+            delete  data[i] ;
+            }  
+        }  
+
         // normal map; no highlighting of a specific region
-        if (((region == "") || (region == currentlyHighlighted.region) && (sameRegion == false)) || sameLanguage) {
-          if (region == currentlyHighlighted.region) {
+        else if (((region == "") || (region == currSettings.region) && (sameRegion == false)) || sameLanguage) {
+          if (region == currSettings.region) {
             updateDotsByRegion("none", dot, 1);
           }
           for (var i = 0; i < data.length; i++) { 
@@ -467,8 +599,8 @@ function makeChart (scale) {
             delete  data[i].ISO;
             delete  data[i] ;
           }
-          currentlyHighlighted.highlighted = false;
-          currentlyHighlighted.region = "none"; 
+          currSettings.highlighted = false;
+          currSettings.region = "none"; 
 
         // highlight a specific region
         } else { 
@@ -483,23 +615,18 @@ function makeChart (scale) {
               // decrease saturation for all other regions         
                data[i].fillKey = getLightFillKey(data[i].Region);
               }
-
               data[ data[i].ISO] = data[i] ;
-
               delete  data[i].ISO;
               delete  data[i] ;
           }  
-          currentlyHighlighted.highlighted = true;
-          currentlyHighlighted.region = region;    
+          currSettings.highlighted = true;
+          currSettings.region = region;    
         }
+
         map.updateChoropleth(data, {reset: true});
       }
     );
   }   
-
-  var where = "";
-  var country = "";
-  updateMap(where, country, false, false);
 
   function getFillKey(region) {
     if (region == 'Africa') { return 'AFRICA'; }
@@ -534,5 +661,21 @@ function makeChart (scale) {
   }
   });
 }
+
+// have the map hint disappear once you scroll down
+$('#map_hint').hide();
+$(function() {
+    $(document).on("mousewheel", function() {
+        if($(document).scrollTop() > 130){
+            $('#map_hint').hide();
+        } else {
+            $('#map_hint').show();
+        }
+    });
+});
+
+$("#map_hint").click(function(){
+    $("#map_hint").hide();
+});
  
 </script>
